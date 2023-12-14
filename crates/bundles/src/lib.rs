@@ -112,13 +112,8 @@ impl<B: Bundle + ?Sized> Bundle for Box<B> {
 /// low-level reliability problems and was blocked in China. We now use a custom
 /// webservice.
 pub fn get_fallback_bundle_url(format_version: u32) -> String {
-    // Format version 32 (TeXLive 2021) was when we introduced versioning to the
-    // URL.
-    if format_version < 32 {
-        "https://relay.fullyjustified.net/default_bundle.tar".to_owned()
-    } else {
-        format!("https://relay.fullyjustified.net/default_bundle_v{format_version}.tar")
-    }
+    // nixpkgs: pin web bundle for reproducible build
+    "https://data1.fullyjustified.net/tlextras-2022.0r0.tar".to_owned()
 }
 
 /// Open the fallback bundle.
