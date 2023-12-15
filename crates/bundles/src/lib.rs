@@ -112,12 +112,23 @@ impl<B: Bundle + ?Sized> Bundle for Box<B> {
 /// low-level reliability problems and was blocked in China. We now use a custom
 /// webservice.
 pub fn get_fallback_bundle_url(format_version: u32) -> String {
+    // Build time environment variables declared in `build.rs`:
+    let web_bundle_locked = option_env!("TECTONIC_WEB_BUNDLE_LOCKED").unwrap_or("");
+    let web_bundle_prefix = option_env!("TECTONIC_WEB_BUNDLE_PREFIX")
+        .filter(|x| !x.is_empty())
+        .unwrap_or("https://relay.fullyjustified.net");
+
+    // Simply return the locked url when it is specified:
+    if !web_bundle_locked.is_empty() {
+        return web_bundle_locked.to_owned();
+    }
+
     // Format version 32 (TeXLive 2021) was when we introduced versioning to the
     // URL.
     if format_version < 32 {
-        "https://relay.fullyjustified.net/default_bundle.tar".to_owned()
+        format!("{web_bundle_prefix}/default_bundle.tar")
     } else {
-        format!("https://relay.fullyjustified.net/default_bundle_v{format_version}.tar")
+        format!("{web_bundle_prefix}/default_bundle_v{format_version}.tar")
     }
 }
 
