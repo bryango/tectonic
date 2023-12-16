@@ -35,14 +35,14 @@ use watchexec::{
 use watchexec_filterer_globset::GlobsetFilterer;
 use watchexec_signals::Signal;
 
-/// The main options for the "V2" command-line interface.
+/// The common options for the "V2" command-line interface.
 #[derive(Debug, StructOpt)]
 #[structopt(
     name = "tectonic -X",
     about = "Process (La)TeX documents",
     setting(AppSettings::NoBinaryName)
 )]
-struct V2CliOptions {
+struct CommonOptions {
     /// How much chatter to print when running
     #[structopt(
         long = "chatter",
@@ -61,6 +61,23 @@ struct V2CliOptions {
         possible_values(&["always", "auto", "never"])
     )]
     cli_color: String,
+
+    /// Use this URL to find resource files instead of the default
+    #[structopt(takes_value(true), long, short, name = "url", overrides_with = "url")]
+    // TODO add URL validation
+    web_bundle: Option<String>,
+}
+
+/// The main options for the "V2" command-line interface.
+#[derive(Debug, StructOpt)]
+#[structopt(
+    name = "tectonic -X",
+    about = "Process (La)TeX documents",
+    setting(AppSettings::NoBinaryName)
+)]
+struct V2CliOptions {
+    #[structopt(flatten)]
+    options: CommonOptions,
 
     #[structopt(subcommand)]
     command: Commands,
@@ -109,10 +126,10 @@ pub fn v2_main(effective_args: &[OsString]) {
     let chatter_level = if customizations.minimal_chatter {
         ChatterLevel::Minimal
     } else {
-        ChatterLevel::from_str(&args.chatter_level).unwrap()
+        ChatterLevel::from_str(&args.options.chatter_level).unwrap()
     };
 
-    let use_cli_color = match &*args.cli_color {
+    let use_cli_color = match &*args.options.cli_color {
         "always" => true,
         "auto" => atty::is(atty::Stream::Stdout),
         "never" => false,
@@ -138,7 +155,7 @@ pub fn v2_main(effective_args: &[OsString]) {
 
     // Now that we've got colorized output, pass off to the inner function.
 
-    let code = match args.command.execute(config, &mut *status) {
+    let code = match args.command.execute(config, &mut *status, args.options.web_bundle) {
         Ok(c) => c,
         Err(e) => {
             status.report_error(&SyncError::new(e).into());
@@ -204,14 +221,19 @@ impl Commands {
         }
     }
 
-    fn execute(self, config: PersistentConfig, status: &mut dyn StatusBackend) -> Result<i32> {
+    fn execute(
+        self,
+        config: PersistentConfig,
+        status: &mut dyn StatusBackend,
+        web_bundle: Option<String>,
+    ) -> Result<i32> {
         match self {
             Commands::Build(o) => o.execute(config, status),
             Commands::Bundle(o) => o.execute(config, status),
-            Commands::Compile(o) => o.execute(config, status),
+            Commands::Compile(o) => o.execute(config, status, web_bundle),
             Commands::Dump(o) => o.execute(config, status),
-            Commands::New(o) => o.execute(config, status),
-            Commands::Init(o) => o.execute(config, status),
+            Commands::New(o) => o.execute(config, status, web_bundle),
+            Commands::Init(o) => o.execute(config, status, web_bundle),
             Commands::Show(o) => o.execute(config, status),
             Commands::Watch(o) => o.execute(config, status),
             Commands::External(args) => do_external(args),
@@ -681,7 +703,12 @@ pub struct NewCommand {
 impl NewCommand {
     fn customize(&self, _cc: &mut CommandCustomizations) {}
 
-    fn execute(self, config: PersistentConfig, status: &mut dyn StatusBackend) -> Result<i32> {
+    fn execute(
+        self,
+        config: PersistentConfig,
+        status: &mut dyn StatusBackend,
+        web_bundle: Option<String>,
+    ) -> Result<i32> {
         tt_note!(
             status,
             "creating new document in directory `{}`",
@@ -689,8 +716,9 @@ impl NewCommand {
         );
 
         let wc = WorkspaceCreator::new(self.path);
+        let bundle_loc = web_bundle.unwrap_or(config.default_bundle_loc().to_owned());
         ctry!(
-            wc.create_defaulted(&config, status);
+            wc.create_defaulted(bundle_loc, status);
             "failed to create the new Tectonic workspace"
         );
         Ok(0)
@@ -704,7 +732,12 @@ pub struct InitCommand {}
 impl InitCommand {
     fn customize(&self, _cc: &mut CommandCustomizations) {}
 
-    fn execute(self, config: PersistentConfig, status: &mut dyn StatusBackend) -> Result<i32> {
+    fn execute(
+        self,
+        config: PersistentConfig,
+        status: &mut dyn StatusBackend,
+        web_bundle: Option<String>,
+    ) -> Result<i32> {
         let path = env::current_dir()?;
         tt_note!(
             status,
@@ -713,8 +746,9 @@ impl InitCommand {
         );
 
         let wc = WorkspaceCreator::new(path);
+        let bundle_loc = web_bundle.unwrap_or(config.default_bundle_loc().to_owned());
         ctry!(
-            wc.create_defaulted(&config, status);
+            wc.create_defaulted(bundle_loc, status);
             "failed to create the new Tectonic workspace"
         );
         Ok(0)
