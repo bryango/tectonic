@@ -37,7 +37,7 @@ pub struct CompileOptions {
     bundle: Option<PathBuf>,
 
     /// Use this URL to find resource files instead of the default
-    #[structopt(takes_value(true), long, short, name = "url")]
+    #[structopt(takes_value(true), long, short, name = "url", overrides_with = "url")]
     // TODO add URL validation
     web_bundle: Option<String>,
 
