@@ -62,6 +62,11 @@ struct V2CliOptions {
     )]
     cli_color: String,
 
+    /// Use this URL to find resource files instead of the default
+    #[structopt(takes_value(true), long, short, name = "url", overrides_with = "url")]
+    // TODO add URL validation
+    web_bundle: Option<String>,
+
     #[structopt(subcommand)]
     command: Commands,
 }
@@ -138,7 +143,7 @@ pub fn v2_main(effective_args: &[OsString]) {
 
     // Now that we've got colorized output, pass off to the inner function.
 
-    let code = match args.command.execute(config, &mut *status) {
+    let code = match args.command.execute(config, &mut *status, args.web_bundle) {
         Ok(c) => c,
         Err(e) => {
             status.report_error(&SyncError::new(e).into());
@@ -204,14 +209,19 @@ impl Commands {
         }
     }
 
-    fn execute(self, config: PersistentConfig, status: &mut dyn StatusBackend) -> Result<i32> {
+    fn execute(
+        self,
+        config: PersistentConfig,
+        status: &mut dyn StatusBackend,
+        web_bundle: Option<String>,
+    ) -> Result<i32> {
         match self {
             Commands::Build(o) => o.execute(config, status),
             Commands::Bundle(o) => o.execute(config, status),
-            Commands::Compile(o) => o.execute(config, status),
+            Commands::Compile(o) => o.execute(config, status, web_bundle),
             Commands::Dump(o) => o.execute(config, status),
-            Commands::New(o) => o.execute(config, status),
-            Commands::Init(o) => o.execute(config, status),
+            Commands::New(o) => o.execute(config, status, web_bundle),
+            Commands::Init(o) => o.execute(config, status, web_bundle),
             Commands::Show(o) => o.execute(config, status),
             Commands::Watch(o) => o.execute(config, status),
             Commands::External(args) => do_external(args),
@@ -676,17 +686,17 @@ pub struct NewCommand {
     /// The name of the document directory to create.
     #[structopt(default_value = ".")]
     path: PathBuf,
-
-    /// Use this URL to find resource files instead of the default
-    #[structopt(takes_value(true), long, short, name = "url")]
-    // TODO add URL validation
-    web_bundle: Option<String>,
 }
 
 impl NewCommand {
     fn customize(&self, _cc: &mut CommandCustomizations) {}
 
-    fn execute(self, config: PersistentConfig, status: &mut dyn StatusBackend) -> Result<i32> {
+    fn execute(
+        self,
+        config: PersistentConfig,
+        status: &mut dyn StatusBackend,
+        web_bundle: Option<String>,
+    ) -> Result<i32> {
         tt_note!(
             status,
             "creating new document in directory `{}`",
@@ -694,9 +704,7 @@ impl NewCommand {
         );
 
         let wc = WorkspaceCreator::new(self.path);
-        let bundle_loc = self
-            .web_bundle
-            .unwrap_or(config.default_bundle_loc().to_owned());
+        let bundle_loc = web_bundle.unwrap_or(config.default_bundle_loc().to_owned());
         ctry!(
             wc.create_defaulted(bundle_loc, status);
             "failed to create the new Tectonic workspace"
@@ -707,17 +715,17 @@ impl NewCommand {
 
 /// `init`: Initialize a document project in the current directory.
 #[derive(Debug, Eq, PartialEq, StructOpt)]
-pub struct InitCommand {
-    /// Use this URL to find resource files instead of the default
-    #[structopt(takes_value(true), long, short, name = "url")]
-    // TODO add URL validation
-    web_bundle: Option<String>,
-}
+pub struct InitCommand {}
 
 impl InitCommand {
     fn customize(&self, _cc: &mut CommandCustomizations) {}
 
-    fn execute(self, config: PersistentConfig, status: &mut dyn StatusBackend) -> Result<i32> {
+    fn execute(
+        self,
+        config: PersistentConfig,
+        status: &mut dyn StatusBackend,
+        web_bundle: Option<String>,
+    ) -> Result<i32> {
         let path = env::current_dir()?;
         tt_note!(
             status,
@@ -726,9 +734,7 @@ impl InitCommand {
         );
 
         let wc = WorkspaceCreator::new(path);
-        let bundle_loc = self
-            .web_bundle
-            .unwrap_or(config.default_bundle_loc().to_owned());
+        let bundle_loc = web_bundle.unwrap_or(config.default_bundle_loc().to_owned());
         ctry!(
             wc.create_defaulted(bundle_loc, status);
             "failed to create the new Tectonic workspace"
