@@ -35,14 +35,14 @@ use watchexec::{
 use watchexec_filterer_globset::GlobsetFilterer;
 use watchexec_signals::Signal;
 
-/// The main options for the "V2" command-line interface.
+/// The common options for the "V2" command-line interface.
 #[derive(Debug, StructOpt)]
 #[structopt(
     name = "tectonic -X",
     about = "Process (La)TeX documents",
     setting(AppSettings::NoBinaryName)
 )]
-struct V2CliOptions {
+struct CommonOptions {
     /// How much chatter to print when running
     #[structopt(
         long = "chatter",
@@ -66,6 +66,18 @@ struct V2CliOptions {
     #[structopt(takes_value(true), long, short, name = "url", overrides_with = "url")]
     // TODO add URL validation
     web_bundle: Option<String>,
+}
+
+/// The main options for the "V2" command-line interface.
+#[derive(Debug, StructOpt)]
+#[structopt(
+    name = "tectonic -X",
+    about = "Process (La)TeX documents",
+    setting(AppSettings::NoBinaryName)
+)]
+struct V2CliOptions {
+    #[structopt(flatten)]
+    options: CommonOptions,
 
     #[structopt(subcommand)]
     command: Commands,
@@ -114,10 +126,10 @@ pub fn v2_main(effective_args: &[OsString]) {
     let chatter_level = if customizations.minimal_chatter {
         ChatterLevel::Minimal
     } else {
-        ChatterLevel::from_str(&args.chatter_level).unwrap()
+        ChatterLevel::from_str(&args.options.chatter_level).unwrap()
     };
 
-    let use_cli_color = match &*args.cli_color {
+    let use_cli_color = match &*args.options.cli_color {
         "always" => true,
         "auto" => atty::is(atty::Stream::Stdout),
         "never" => false,
@@ -143,7 +155,7 @@ pub fn v2_main(effective_args: &[OsString]) {
 
     // Now that we've got colorized output, pass off to the inner function.
 
-    let code = match args.command.execute(config, &mut *status, args.web_bundle) {
+    let code = match args.command.execute(config, &mut *status, args.options.web_bundle) {
         Ok(c) => c,
         Err(e) => {
             status.report_error(&SyncError::new(e).into());
