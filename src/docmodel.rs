@@ -217,6 +217,7 @@ pub trait WorkspaceCreatorExt {
     fn create_defaulted(
         self,
         config: &config::PersistentConfig,
+        bundle_loc: String,
         status: &mut dyn StatusBackend,
     ) -> Result<Workspace>;
 }
@@ -225,13 +226,18 @@ impl WorkspaceCreatorExt for WorkspaceCreator {
     fn create_defaulted(
         self,
         config: &config::PersistentConfig,
+        bundle_loc: String,
         status: &mut dyn StatusBackend,
     ) -> Result<Workspace> {
-        let bundle_loc = if config::is_config_test_mode_activated() {
+        let bundle_loc = if config::is_config_test_mode_activated()
+            && (
+                // when a good bundle is selected during testing
+                bundle_loc == config.default_bundle_loc() || bundle_loc.contains("test-bundle://")
+            ) {
             "test-bundle://".to_owned()
         } else {
             let mut gub = DefaultBackend::default();
-            gub.resolve_url(config.default_bundle_loc(), status)?
+            gub.resolve_url(&bundle_loc, status)?
         };
 
         Ok(self.create(bundle_loc)?)
