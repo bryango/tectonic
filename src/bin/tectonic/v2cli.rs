@@ -711,9 +711,8 @@ impl NewCommand {
         );
 
         let wc = WorkspaceCreator::new(self.path);
-        let bundle_loc = web_bundle.unwrap_or(config.default_bundle_loc().to_owned());
         ctry!(
-            wc.create_defaulted(&config, bundle_loc, status);
+            wc.create_defaulted(config, status, web_bundle);
             "failed to create the new Tectonic workspace"
         );
         Ok(0)
@@ -741,9 +740,8 @@ impl InitCommand {
         );
 
         let wc = WorkspaceCreator::new(path);
-        let bundle_loc = web_bundle.unwrap_or(config.default_bundle_loc().to_owned());
         ctry!(
-            wc.create_defaulted(&config, bundle_loc, status);
+            wc.create_defaulted(config, status, web_bundle);
             "failed to create the new Tectonic workspace"
         );
         Ok(0)
