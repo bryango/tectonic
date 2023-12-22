@@ -122,6 +122,10 @@ impl PersistentConfig {
         custom_cache_root: Option<&Path>,
         status: &mut dyn StatusBackend,
     ) -> Result<Box<dyn Bundle>> {
+        if let Ok(test_bundle) = self.maybe_return_test_bundle(Some(url.to_owned())) {
+            return Ok(test_bundle);
+        }
+
         let mut cache = if let Some(root) = custom_cache_root {
             Cache::get_for_custom_directory(root)
         } else {
@@ -156,9 +160,8 @@ impl PersistentConfig {
     ) -> Result<Box<dyn Bundle>> {
         use std::io;
 
-        if CONFIG_TEST_MODE_ACTIVATED.load(Ordering::SeqCst) {
-            let bundle = crate::test_util::TestBundle::default();
-            return Ok(Box::new(bundle));
+        if let Ok(test_bundle) = self.maybe_return_test_bundle(None) {
+            return Ok(test_bundle);
         }
 
         if self.default_bundles.len() != 1 {
@@ -183,10 +186,30 @@ impl PersistentConfig {
     }
 
     pub fn format_cache_path(&self) -> Result<PathBuf> {
-        if CONFIG_TEST_MODE_ACTIVATED.load(Ordering::SeqCst) {
+        if is_config_test_mode_activated() {
             Ok(crate::test_util::test_path(&[]))
         } else {
             Ok(app_dirs::ensure_user_cache_dir("formats")?)
+        }
+    }
+
+    pub fn maybe_return_test_bundle(&self, web_bundle: Option<String>) -> Result<Box<dyn Bundle>> {
+        if self.is_test_bundle_wanted(web_bundle) {
+            Ok(Box::new(crate::test_util::TestBundle::default()))
+        } else {
+            Err(ErrorKind::Msg("not asking for the default test bundle".to_owned()).into())
+        }
+    }
+
+    pub fn is_test_bundle_wanted(&self, web_bundle: Option<String>) -> bool {
+        if !is_config_test_mode_activated() {
+            return false;
+        }
+        match web_bundle {
+            None => true,
+            Some(x) if x == self.default_bundle_loc() => true,
+            Some(x) if x.contains("test-bundle://") => true,
+            _ => true,
         }
     }
 }
