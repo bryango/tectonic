@@ -489,6 +489,106 @@ fn bibtex_multiple_aux_files() {
     success_or_panic(&output);
 }
 
+/// Test various web bundle overrides for the v1 CLI
+#[test]
+fn bundle_overrides_v1() {
+    let filename = "subdirectory/content/1.tex";
+    let fmt_arg: &str = &get_plain_format_arg();
+    let tempdir = setup_and_copy_files(&[filename]);
+    let temppath = tempdir.path().to_owned();
+
+    let arg_overriden = ["--web-bundle", "overriden"];
+    let arg_test_bundle = ["--web-bundle", "test-bundle://"];
+
+    let valid_args: Vec<Vec<&str>> = vec![
+        // different positions
+        [&arg_test_bundle[..], &[fmt_arg], &[filename]].concat(),
+        [&[fmt_arg], &arg_test_bundle[..], &[filename]].concat(),
+        [&[fmt_arg], &[filename], &arg_test_bundle[..]].concat(),
+        // overriding vendor presets
+        [
+            &arg_overriden[..],
+            &arg_test_bundle[..],
+            &[fmt_arg],
+            &[filename],
+        ]
+        .concat(),
+        // stress test
+        [
+            &arg_overriden[..],
+            &arg_overriden[..],
+            &[fmt_arg],
+            &arg_overriden[..],
+            &arg_overriden[..],
+            &[filename],
+            &arg_overriden[..],
+            &arg_test_bundle[..],
+        ]
+        .concat(),
+    ];
+
+    for args in valid_args {
+        let output = run_tectonic(&temppath, &args);
+        success_or_panic(&output);
+    }
+}
+
+/// Test various web bundle overrides for the v2 CLI
+#[test]
+fn bundle_overrides_v2() {
+    let arg_overriden = ["--web-bundle", "overriden"];
+    let arg_test_bundle = ["--web-bundle", "test-bundle://"];
+
+    // test `-X new`
+    let valid_args: Vec<Vec<&str>> = vec![
+        // different positions
+        [&arg_test_bundle[..], &["-X", "new", "subdir"]].concat(),
+        [&["-X"], &arg_test_bundle[..], &["new"]].concat(),
+        [&["-X", "new"], &arg_test_bundle[..]].concat(),
+        // overriding vendor presets
+        [&arg_overriden[..], &arg_test_bundle[..], &["-X", "new"]].concat(),
+        [&arg_overriden[..], &["-X"], &arg_test_bundle[..], &["new"]].concat(),
+        [&arg_overriden[..], &["-X", "new"], &arg_test_bundle[..]].concat(),
+        // stress test
+        [
+            &arg_overriden[..],
+            &arg_overriden[..],
+            &["-X"],
+            &arg_overriden[..],
+            &arg_overriden[..],
+            &["new"],
+            &arg_overriden[..],
+            &arg_test_bundle[..],
+        ]
+        .concat(),
+    ];
+
+    for args in valid_args {
+        let tempdir = setup_and_copy_files(&[]);
+        let temppath = tempdir.path().to_owned();
+        let output = run_tectonic(&temppath, &args);
+        success_or_panic(&output);
+    }
+
+    // test `-X build`
+    let (_tempdir, temppath) = setup_v2();
+    let output = run_tectonic(
+        &temppath,
+        &[
+            &arg_overriden[..],
+            &arg_overriden[..],
+            &["-X"],
+            &arg_overriden[..],
+            &arg_overriden[..],
+            &["build"],
+            &arg_overriden[..],
+            &arg_test_bundle[..],
+        ]
+        .concat(),
+    );
+    success_or_panic(&output);
+}
+
 #[test]
 fn help_flag() {
     let output = run_tectonic(&PathBuf::from("."), &["-h"]);
