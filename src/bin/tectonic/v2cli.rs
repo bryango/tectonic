@@ -223,7 +223,7 @@ impl Commands {
         web_bundle: Option<String>,
     ) -> Result<i32> {
         match self {
-            Commands::Build(o) => o.execute(config, status),
+            Commands::Build(o) => o.execute(config, status, web_bundle),
             Commands::Bundle(o) => o.execute(config, status),
             Commands::Compile(o) => o.execute(config, status, web_bundle),
             Commands::Dump(o) => o.execute(config, status),
@@ -271,7 +271,17 @@ pub struct BuildCommand {
 impl BuildCommand {
     fn customize(&self, _cc: &mut CommandCustomizations) {}
 
-    fn execute(self, config: PersistentConfig, status: &mut dyn StatusBackend) -> Result<i32> {
+    fn execute(
+        self,
+        config: PersistentConfig,
+        status: &mut dyn StatusBackend,
+        web_bundle: Option<String>,
+    ) -> Result<i32> {
+        // `--web-bundle` is not actually used for `-X build`,
+        // so inform the user instead of silently ignore.
+        if let Some(url) = web_bundle {
+            tt_note!(status, "--web-bundle {} ignored", &url);
+        }
         let ws = Workspace::open_from_environment()?;
         let doc = ws.first_document();
 

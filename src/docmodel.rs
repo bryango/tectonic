@@ -28,7 +28,7 @@ use crate::{
     driver::{OutputFormat, PassSetting, ProcessingSessionBuilder},
     errors::{ErrorKind, Result},
     status::StatusBackend,
-    test_util, tt_note,
+    tt_note,
     unstable_opts::UnstableOptions,
 };
 
@@ -111,9 +111,8 @@ impl DocumentExt for Document {
             }
         }
 
-        if config::is_config_test_mode_activated() {
-            let bundle = test_util::TestBundle::default();
-            Ok(Box::new(bundle))
+        if let Ok(test_bundle) = config::maybe_return_test_bundle(None) {
+            Ok(test_bundle)
         } else if let Ok(url) = Url::parse(&self.bundle_loc) {
             if url.scheme() != "file" {
                 let mut cache = Cache::get_user_default()?;
