@@ -750,6 +750,27 @@ fn v2_bundle_overrides() {
         &[&arg_bad_bundle[..], &["-X"], &["build"]].concat(),
     );
     success_or_panic(&output);
+
+    // subcommand overrides are effective
+    let output = run_tectonic(&temppath, &["-X", "build", "--bundle", "bad-bundle"]);
+    error_or_panic(&output);
+
+    let output = run_tectonic(&temppath, &["-X", "build", "--bundle", "test-bundle://"]);
+    success_or_panic(&output);
+
+    let output = run_tectonic(
+        &temppath,
+        &[
+            &arg_bad_bundle[..],
+            &["-X"],
+            &arg_bad_bundle[..],
+            &["build"],
+            &["--bundle", "bad-bundle"],
+            &["--bundle", "test-bundle://"],
+        ]
+        .concat(),
+    );
+    success_or_panic(&output);
 }
 
 #[cfg(feature = "serialization")]
