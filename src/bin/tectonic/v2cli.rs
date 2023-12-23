@@ -223,7 +223,7 @@ impl Commands {
         web_bundle: Option<String>,
     ) -> Result<i32> {
         match self {
-            Commands::Build(o) => o.execute(config, status),
+            Commands::Build(o) => o.execute(config, status, web_bundle),
             Commands::Bundle(o) => o.execute(config, status),
             Commands::Compile(o) => o.execute(config, status, web_bundle),
             Commands::Dump(o) => o.execute(config, status),
@@ -266,12 +266,37 @@ pub struct BuildCommand {
     /// Specify a target to be used by the build
     #[structopt(long, help = "Specify the target of the build.")]
     target: Option<String>,
+
+    /// Override the default resource files
+    #[structopt(
+        takes_value(true),
+        long,
+        short,
+        name = "url-override",
+        overrides_with = "url-override"
+    )]
+    // TODO add URL validation
+    bundle: Option<String>,
 }
 
 impl BuildCommand {
     fn customize(&self, _cc: &mut CommandCustomizations) {}
 
-    fn execute(self, config: PersistentConfig, status: &mut dyn StatusBackend) -> Result<i32> {
+    fn execute(
+        self,
+        config: PersistentConfig,
+        status: &mut dyn StatusBackend,
+        web_bundle: Option<String>,
+    ) -> Result<i32> {
+        if let Some(url) = web_bundle {
+            tt_note!(status, "--web-bundle {} ignored", &url);
+            if self.bundle.is_none() {
+                tt_note!(status, "using workspace bundle configuration");
+            }
+        }
+        if let Some(url) = self.bundle.clone() {
+            tt_note!(status, "overriding with --bundle {}", &url);
+        }
         let ws = Workspace::open_from_environment()?;
         let doc = ws.first_document();
 
@@ -288,6 +313,7 @@ impl BuildCommand {
         let mut setup_options =
             DocumentSetupOptions::new_with_security(SecuritySettings::new(stance));
         setup_options.only_cached(self.only_cached);
+        setup_options.bundle(self.bundle);
 
         for output_name in doc.output_names() {
             if let Some(out) = self.target.as_ref() {
