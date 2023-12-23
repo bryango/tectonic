@@ -28,7 +28,7 @@ use crate::{
     driver::{OutputFormat, PassSetting, ProcessingSessionBuilder},
     errors::{ErrorKind, Result},
     status::StatusBackend,
-    test_util, tt_note,
+    tt_note,
     unstable_opts::UnstableOptions,
 };
 
@@ -44,6 +44,9 @@ pub struct DocumentSetupOptions {
 
     /// Ensure a deterministic build environment.
     deterministic_mode: bool,
+
+    /// Override the default resource files
+    bundle: Option<String>,
 }
 
 impl DocumentSetupOptions {
@@ -54,6 +57,7 @@ impl DocumentSetupOptions {
             only_cached: false,
             deterministic_mode: false,
             security,
+            bundle: None,
         }
     }
 
@@ -70,6 +74,12 @@ impl DocumentSetupOptions {
     /// Specify whether we want to ensure a deterministic build environment.
     pub fn deterministic_mode(&mut self, s: bool) -> &mut Self {
         self.deterministic_mode = s;
+        self
+    }
+
+    /// Override the default resource files.
+    pub fn bundle(&mut self, s: Option<String>) -> &mut Self {
+        self.bundle = s;
         self
     }
 }
@@ -111,9 +121,8 @@ impl DocumentExt for Document {
             }
         }
 
-        if config::is_config_test_mode_activated() {
-            let bundle = test_util::TestBundle::default();
-            Ok(Box::new(bundle))
+        if let Ok(test_bundle) = config::maybe_return_test_bundle(setup_options.bundle.clone()) {
+            Ok(test_bundle)
         } else if let Ok(url) = Url::parse(&self.bundle_loc) {
             if url.scheme() != "file" {
                 let mut cache = Cache::get_user_default()?;
