@@ -44,6 +44,25 @@ pub fn is_config_test_mode_activated() -> bool {
     CONFIG_TEST_MODE_ACTIVATED.load(Ordering::SeqCst)
 }
 
+pub fn is_test_bundle_wanted(web_bundle: Option<String>) -> bool {
+    if !is_config_test_mode_activated() {
+        return false;
+    }
+    match web_bundle {
+        None => true,
+        Some(x) if x.contains("test-bundle://") => true,
+        _ => false,
+    }
+}
+
+pub fn maybe_return_test_bundle(web_bundle: Option<String>) -> Result<Box<dyn Bundle>> {
+    if is_test_bundle_wanted(web_bundle) {
+        Ok(Box::new(crate::test_util::TestBundle::default()))
+    } else {
+        Err(ErrorKind::Msg("not asking for the default test bundle".to_owned()).into())
+    }
+}
+
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PersistentConfig {
     default_bundles: Vec<BundleInfo>,
@@ -122,7 +141,7 @@ impl PersistentConfig {
         custom_cache_root: Option<&Path>,
         status: &mut dyn StatusBackend,
     ) -> Result<Box<dyn Bundle>> {
-        if let Ok(test_bundle) = self.maybe_return_test_bundle(Some(url.to_owned())) {
+        if let Ok(test_bundle) = maybe_return_test_bundle(Some(url.to_owned())) {
             return Ok(test_bundle);
         }
 
@@ -160,7 +179,7 @@ impl PersistentConfig {
     ) -> Result<Box<dyn Bundle>> {
         use std::io;
 
-        if let Ok(test_bundle) = self.maybe_return_test_bundle(None) {
+        if let Ok(test_bundle) = maybe_return_test_bundle(None) {
             return Ok(test_bundle);
         }
 
@@ -190,26 +209,6 @@ impl PersistentConfig {
             Ok(crate::test_util::test_path(&[]))
         } else {
             Ok(app_dirs::ensure_user_cache_dir("formats")?)
-        }
-    }
-
-    pub fn maybe_return_test_bundle(&self, web_bundle: Option<String>) -> Result<Box<dyn Bundle>> {
-        if self.is_test_bundle_wanted(web_bundle) {
-            Ok(Box::new(crate::test_util::TestBundle::default()))
-        } else {
-            Err(ErrorKind::Msg("not asking for the default test bundle".to_owned()).into())
-        }
-    }
-
-    pub fn is_test_bundle_wanted(&self, web_bundle: Option<String>) -> bool {
-        if !is_config_test_mode_activated() {
-            return false;
-        }
-        match web_bundle {
-            None => true,
-            Some(x) if x == self.default_bundle_loc() => true,
-            Some(x) if x.contains("test-bundle://") => true,
-            _ => false,
         }
     }
 }
