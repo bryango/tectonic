@@ -278,9 +278,10 @@ impl BuildCommand {
         web_bundle: Option<String>,
     ) -> Result<i32> {
         // `--web-bundle` is not actually used for `-X build`,
-        // so inform the user instead of silently ignore.
+        // so inform the user instead of ignoring silently.
         if let Some(url) = web_bundle {
             tt_note!(status, "--web-bundle {} ignored", &url);
+            tt_note!(status, "using workspace bundle configuration");
         }
         let ws = Workspace::open_from_environment()?;
         let doc = ws.first_document();
