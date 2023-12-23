@@ -229,7 +229,7 @@ impl WorkspaceCreatorExt for WorkspaceCreator {
         status: &mut dyn StatusBackend,
         web_bundle: Option<String>,
     ) -> Result<Workspace> {
-        let bundle_loc = if config.is_test_bundle_wanted(web_bundle.clone()) {
+        let bundle_loc = if config::is_test_bundle_wanted(web_bundle.clone()) {
             "test-bundle://".to_owned()
         } else {
             let unresolved_loc = web_bundle.unwrap_or(config.default_bundle_loc().to_owned());
