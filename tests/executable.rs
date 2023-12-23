@@ -638,7 +638,7 @@ fn stdin_content() {
 
 /// Test various web bundle overrides for the v1 CLI
 #[test]
-fn web_bundle_override() {
+fn web_bundle_overrides() {
     let filename = "subdirectory/content/1.tex";
     let fmt_arg: &str = &get_plain_format_arg();
     let tempdir = setup_and_copy_files(&[filename]);
@@ -743,29 +743,30 @@ fn v2_bundle_overrides() {
 
     // test `-X build`
     let (_tempdir, temppath) = setup_v2();
+
+    // `--web-bundle` is ignored
     let output = run_tectonic(
         &temppath,
         &[&arg_bad_bundle[..], &["-X"], &["build"]].concat(),
     );
+    success_or_panic(&output);
+
+    // subcommand overrides are effective
+    let output = run_tectonic(&temppath, &["-X", "build", "--bundle", "bad-bundle"]);
     error_or_panic(&output);
 
-    let output = run_tectonic(
-        &temppath,
-        &[&arg_good_bundle[..], &["-X"], &["build"]].concat(),
-    );
+    let output = run_tectonic(&temppath, &["-X", "build", "--bundle", "test-bundle://"]);
     success_or_panic(&output);
 
     let output = run_tectonic(
         &temppath,
         &[
             &arg_bad_bundle[..],
-            &arg_bad_bundle[..],
             &["-X"],
             &arg_bad_bundle[..],
-            &arg_bad_bundle[..],
             &["build"],
-            &arg_bad_bundle[..],
-            &arg_good_bundle[..],
+            &["--bundle", "bad-bundle"],
+            &["--bundle", "test-bundle://"],
         ]
         .concat(),
     );
