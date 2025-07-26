@@ -45,7 +45,6 @@ members = [
     "crates/bridge_icu",
     "crates/bridge_png",
     "crates/bundles",
-    "crates/bundles/tests/bundle_overrides_test",
     "crates/cfg_support",
     "crates/dep_support",
     "crates/docmodel",
@@ -61,6 +60,7 @@ members = [
     "crates/xdv",
     "crates/xetex_format",
     "crates/xetex_layout",
+    "tests/bundle_env_overrides_test",
 ]
 
 [lib]

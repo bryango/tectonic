@@ -14,11 +14,14 @@ fn run_test_program(format_version: u32, env_vars: &[(&str, &str)]) -> String {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let test_dir = PathBuf::from(&manifest_dir)
         .join("tests")
-        .join("bundle_overrides_test");
+        .join("bundle_env_overrides_test");
+    let target_platform = env::var("TARGET").unwrap();
 
     let mut cmd = Command::new("cargo");
     cmd.arg("run")
         .arg("--quiet")
+        .arg("--target")
+        .arg(target_platform)
         .arg("--")
         .arg(format_version.to_string())
         .current_dir(&test_dir);
