@@ -95,9 +95,6 @@ fn test_empty_locked_bundle_ignored() {
     );
     assert_eq!(
         url_empty_locked,
-        format!(
-            "{}/default_bundle_v{}.tar",
-            TEST_BUNDLE_PREFIX, TEST_FORMAT_VERSION
-        )
+        format!("{TEST_BUNDLE_PREFIX}/default_bundle_v{TEST_FORMAT_VERSION}.tar",)
     );
 }

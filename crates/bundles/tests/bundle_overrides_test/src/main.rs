@@ -10,5 +10,5 @@ fn main() {
         .expect("one must provide a valid format version to `get_fallback_bundle_url`");
 
     let url = get_fallback_bundle_url(format_version);
-    println!("{}", url);
+    println!("{url}");
 }
