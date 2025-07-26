@@ -14,3 +14,7 @@
 
 # Misc
 *.ignore
+.direnv
+.envrc
+external-harfbuzz.code-workspace
+.zed
